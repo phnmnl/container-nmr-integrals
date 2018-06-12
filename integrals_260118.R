@@ -77,7 +77,6 @@ align_all <- function(datadir, kind, left, right, where) {
 
 integrate_all <- function(datadir, kind, input) {
     # integrate spectra 
-    # (C) Leonardo Tenori 2016
     require(caTools)
 
     SpectraDirs <- get_spectra_dirs(datadir)
