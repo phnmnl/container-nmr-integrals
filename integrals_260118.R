@@ -52,7 +52,7 @@ align_spectrum <- function(spectrum_dir, kind, left, right, where) {
 
     ## Read in parameters, needed for data processing
     params <- parse_spectrum_parameters(procs_dir)
-    
+
     ## align
     v <- which(left >= params$x & right <= params$x)
     s <- which.max(params$y[v])
@@ -76,37 +76,37 @@ align_all <- function(datadir, kind, left, right, where) {
 }
 
 integrate_all <- function(datadir, kind, input) {
-    # integrate spectra 
+    # integrate spectra
     require(caTools)
 
     SpectraDirs <- get_spectra_dirs(datadir)
-    
+
     inte = matrix(nrow=length(SpectraDirs), ncol=nrow(input))
     colnames(inte) = input[,1]
     xx = list(list(),list()); yy=list(list(),list())
-    
+
     i = 0
     for (dir in SpectraDirs) {
         procs_dir <- file.path(dir, as.character(kind), "pdata", "1")
-      
+
         ## Read in parameters, needed for data processing
         params <- parse_spectrum_parameters(procs_dir)
-  
+
         # normalize
         v <- which(params$x >= 5.5 | params$x <= 4.35)
         v <- sum(abs(params$y[v]))
         y <- 1e6*params$y/v
         i <- i+1
-  
+
         for (ff in 1:nrow(input)) {
-  
-            left = input[ff,2]; right = input[ff,3]; where=input[ff,4]; 
+
+            left = input[ff,2]; right = input[ff,3]; where=input[ff,4];
             l1 = left + 0.0005;  l2 = left + 0.0001;
             r1 = right - 0.0001; r2 = right - 0.0005;
-  
+
             OFFSETNEW <- params$OFFSET
             if (input[ff,6]==1){
-  
+
                 ## align
                 v <- which(left >= params$x & right <= params$x)
                 s <- which.max(y[v])
@@ -114,15 +114,15 @@ integrate_all <- function(datadir, kind, input) {
                 shift <- where - reference
                 OFFSETNEW <- params$OFFSET + shift
             }
-  
+
             if (input[ff,5]==1){
                 ### raddrizza
                 x <- as.numeric(seq(OFFSETNEW, OFFSETNEW - params$SW_p/params$SF, length=params$SI))
                 v <- which(left>=x & right<=x)
-  
+
                 A = min(as.numeric( y[which(l1 >= x & l2 <= x)] ))
                 B = min(as.numeric( y[which(r1 >= x & r2 <= x)] ))
-  
+
                 left1 = mean(l1, l2)
                 right1 = mean(r1, r2)
                 v = which(left1 >= x & right1 <= x)
@@ -135,9 +135,9 @@ integrate_all <- function(datadir, kind, input) {
             ## integral
             x <- as.numeric(seq (OFFSETNEW, OFFSETNEW - params$SW_p/params$SF, length=params$SI))
             v <- which(left >= x & right <= x)
-  
+
             inte[i,ff] <- trapz(rev(x[v]), y[v])
-  
+
             xx[[i]][[ff]] = rev(x[v])
             yy[[i]][[ff]] = rev(y[v])
             x <- as.numeric( seq(params$OFFSET, params$OFFSET - params$SW_p/params$SF, length=params$SI) )
@@ -146,7 +146,7 @@ integrate_all <- function(datadir, kind, input) {
 
     # report
     for (h in 1:nrow(input) ) {
-        ss = paste(input[h,1], "ok") 
+        ss = paste(input[h,1], "ok")
         pp = paste(input[h,1], "bad")
 
         reference = inte[1,h]
@@ -172,7 +172,7 @@ plot_metabolites <- function(metabolites, yy, xx) {
         plot(xx[[1]][[h]], rev(yy[[1]][[h]]),
              ylim=c(0,(max(kk) + max(kk) / 5)),
              type="l", xaxt="n",
-             xlab="ppm", ylab="Relative intensity") 
+             xlab="ppm", ylab="Relative intensity")
 
         axis(1,
              at=c(xx[[1]][[h]][1], xx[[1]][[h]][dd]),
@@ -181,7 +181,7 @@ plot_metabolites <- function(metabolites, yy, xx) {
         points(xx[[2]][[h]],rev(yy[[2]][[h]]), type="l",col=2)
 
         abline(v=left, lty=2, col="blue")
-        abline(v=right, lty=2, col="blue") 
+        abline(v=right, lty=2, col="blue")
 
         title(metabolites[h,1])
     }
