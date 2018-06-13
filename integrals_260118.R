@@ -5,11 +5,15 @@
 #datadir = "G:\\CONTROLLO QUALITA\\Long_Term_Storage_SIERO\\nmr" #percorso di dove si salvano gli spettri nmr
 
 # `kind` corrisponde ad una sottocartella dello spettro.  Ho visto { 1, 3, 4, 98888 }
+# Used by load_spectrum to determine from where to load the data
 kind=3
 
 library("caTools")
 
-get_spectra_dirs <- function(data_root) list.dirs(data_root, full.names=TRUE, recursive=FALSE)
+get_spectra_dirs <- function(data_root) {
+  d <- dir(data_root, full.names=TRUE)
+  d[ dir.exists(d) ]
+}
 
 parse_spectrum_parameters <- function(procs_dir) {
     procs_file <- file.path(procs_dir, "procs")
@@ -44,80 +48,75 @@ parse_spectrum_parameters <- function(procs_dir) {
     return (retval)
 }
 
-
-align_spectrum <- function(spectrum_dir, kind, left, right, where) {
-    # align spectra to a reference signal
-
+# returns a named list
+load_spectrum <- function(spectrum_dir) {
     procs_dir <- file.path(spectrum_dir, as.character(kind), "pdata", "1")
 
     ## Read in parameters, needed for data processing
     params <- parse_spectrum_parameters(procs_dir)
+    params$path <- spectrum_dir
 
-    ## align
-    v <- which(left >= params$x & right <= params$x)
-    s <- which.max(params$y[v])
-    reference <- params$x[v][s]
+    return (params)
+}
+
+align_spectrum <- function(spectrum_object, left, right, where) {
+    # align spectra to a reference signal
+
+    v <- which(left >= spectrum_object$x & right <= spectrum_object$x)
+    s <- which.max(spectrum_object$y[v])
+    reference <- spectrum_object$x[v][s]
     shift <- where - reference
-    OFFSETNEW <- params$OFFSET + shift
+    new_offset <- spectrum_object$OFFSET + shift
 
-    ## Ovewrite the procs file setting the new offset
-    procs <- file.path(procs_dir, "procs")
-    x <- readLines(procs)
-    y <- gsub( paste("OFFSET=", params$OFFSET), paste("OFFSET=", OFFSETNEW), x )
-    writeLines(y, procs)
+    return (new_offset)
 }
 
-align_all <- function(datadir, kind, left, right, where) {
-    spectra_dirs <- get_spectra_dirs(datadir)
+align_all <- function(spectrum_objects, left, right, where) {
+    new_offsets <- sapply(spectrum_objects, align_spectrum, left=left, right=right, where=where)
 
-    for (dir in spectra_dirs) {
-        align_spectrum(dir, kind, left, right, where)
-    }
+    # This function returns a named numeric array
+    return (new_offsets)
 }
 
-integrate_all <- function(datadir, kind, input) {
+integrate_all <- function(spectrum_objects, aligned_offsets, metabolites_table) {
     # integrate spectra
     require(caTools)
+    if (length(spectrum_objects) != length(aligned_offsets)) {
+        stop("number of aligned offsets doesn't match number of spectra")
+    }
 
-    SpectraDirs <- get_spectra_dirs(datadir)
-
-    inte = matrix(nrow=length(SpectraDirs), ncol=nrow(input))
-    colnames(inte) = input[,1]
+    inte = matrix(nrow=length(spectrum_objects), ncol=nrow(metabolites_table))
+    colnames(inte) = metabolites_table[,1]
     xx = list(list(),list()); yy=list(list(),list())
 
-    i = 0
-    for (dir in SpectraDirs) {
-        procs_dir <- file.path(dir, as.character(kind), "pdata", "1")
-
-        ## Read in parameters, needed for data processing
-        params <- parse_spectrum_parameters(procs_dir)
+    for (idx in seq_along(spectrum_objects)) {
+        spectrum <- spectrum_objects[[idx]]
 
         # normalize
-        v <- which(params$x >= 5.5 | params$x <= 4.35)
-        v <- sum(abs(params$y[v]))
-        y <- 1e6*params$y/v
-        i <- i+1
+        v <- which(spectrum$x >= 5.5 | spectrum$x <= 4.35)
+        v <- sum(abs(spectrum$y[v]))
+        y <- 1e6*spectrum$y/v
 
-        for (ff in 1:nrow(input)) {
+        for (ff in 1:nrow(metabolites_table)) {
 
-            left = input[ff,2]; right = input[ff,3]; where=input[ff,4];
+            left = metabolites_table[ff,2]; right = metabolites_table[ff,3]; where=metabolites_table[ff,4];
             l1 = left + 0.0005;  l2 = left + 0.0001;
             r1 = right - 0.0001; r2 = right - 0.0005;
 
-            OFFSETNEW <- params$OFFSET
-            if (input[ff,6]==1){
+            OFFSET <- aligned_offsets[idx]
+            if (metabolites_table[ff,6]==1){
 
                 ## align
-                v <- which(left >= params$x & right <= params$x)
+                v <- which(left >= spectrum$x & right <= spectrum$x)
                 s <- which.max(y[v])
-                reference <- params$x[v][s]
+                reference <- spectrum$x[v][s]
                 shift <- where - reference
-                OFFSETNEW <- params$OFFSET + shift
+                OFFSET <- aligned_offsets[idx] + shift
             }
 
-            if (input[ff,5]==1){
+            if (metabolites_table[ff,5]==1){
                 ### raddrizza
-                x <- as.numeric(seq(OFFSETNEW, OFFSETNEW - params$SW_p/params$SF, length=params$SI))
+                x <- as.numeric(seq(OFFSET, OFFSET - spectrum$SW_p/spectrum$SF, length=spectrum$SI))
                 v <- which(left>=x & right<=x)
 
                 A = min(as.numeric( y[which(l1 >= x & l2 <= x)] ))
@@ -133,32 +132,33 @@ integrate_all <- function(datadir, kind, input) {
                 y[v] = y[v] - baseline
             }
             ## integral
-            x <- as.numeric(seq (OFFSETNEW, OFFSETNEW - params$SW_p/params$SF, length=params$SI))
+            x <- as.numeric(seq (OFFSET, OFFSET - spectrum$SW_p/spectrum$SF, length=spectrum$SI))
             v <- which(left >= x & right <= x)
 
-            inte[i,ff] <- trapz(rev(x[v]), y[v])
+            inte[idx,ff] <- trapz(rev(x[v]), y[v])
 
-            xx[[i]][[ff]] = rev(x[v])
-            yy[[i]][[ff]] = rev(y[v])
-            x <- as.numeric( seq(params$OFFSET, params$OFFSET - params$SW_p/params$SF, length=params$SI) )
+            xx[[idx]][[ff]] = rev(x[v])
+            yy[[idx]][[ff]] = rev(y[v])
+            x <- as.numeric( seq(aligned_offsets[idx], aligned_offsets[idx] - spectrum$SW_p/spectrum$SF, length=spectrum$SI) )
         }
     }
 
-    # report
-    for (h in 1:nrow(input) ) {
-        ss = paste(input[h,1], "ok")
-        pp = paste(input[h,1], "bad")
+    return (list(inte=inte, x=xx, y=yy))
+}
 
-        reference = inte[1,h]
-        test = inte[2,h]
+print_report <- function(integration, metabolites_table) {
+    for (h in 1:nrow(metabolites_table) ) {
+        ss = paste(metabolites_table[h,1], "ok")
+        pp = paste(metabolites_table[h,1], "bad")
+
+        reference = integration[1,h]
+        test = integration[2,h]
 
         tt = test * 100 / reference
         ttt = abs(100 - tt)
-        ifelse(ttt < 20, print(ss), print(pp))
-        print(paste("diff", round(ttt,2), "%"))
+        output <- ifelse(ttt < 20, ss, pp)
+        cat(output, "\tdiff\t", round(ttt,2), "\t%\n")
     }
-
-    return (list(inte=inte, x=xx, y=yy))
 }
 
 
@@ -192,7 +192,6 @@ spectra <- "/home/pireddu/Projects/phenomenal/cerm/Script/"
 metabolites <- "/home/pireddu/Projects/phenomenal/cerm/Script/metabolites.txt"
 
 main <- function(path_to_spectra) {
-    kind <- 3
     left <- 5.257
     right <- 5.225
     where <- 5.243
@@ -200,12 +199,19 @@ main <- function(path_to_spectra) {
     # percorso del file metabolites.txt
     metabolites_t <- read.table(metabolites)
 
-    align_all(path_to_spectra, kind, left, right, where)
-    res <- integrate_all(path_to_spectra, kind, metabolites_t)
+    spectra_dirs <- get_spectra_dirs(path_to_spectra)
+    message("Loading spectra...")
+    spectrum_objects <- lapply(spectra_dirs, load_spectrum)
+    message(paste("Loaded", length(spectrum_objects), "spectrum objects"))
+
+    new_offsets <- align_all(spectrum_objects, left, right, where)
+    integr_results <- integrate_all(spectrum_objects, new_offsets, metabolites_t)
+
+    print_report(integr_results$inte, metabolites_t)
 
     pdf("plot.pdf")
-    plot_metabolites(metabolites_t, res$y, res$x)
-    dev.off()
+    plot_metabolites(metabolites_t, integr_results$y, integr_results$x)
+    ignored_ret_device <- dev.off()
 }
 
 main(spectra)
