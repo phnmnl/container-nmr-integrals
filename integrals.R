@@ -2,13 +2,14 @@
 # Original author:  Leonardo Tenori (2016)
 # Refactored by Luca Pireddu (2018)
 
-#datadir = "G:\\CONTROLLO QUALITA\\Long_Term_Storage_SIERO\\nmr" #percorso di dove si salvano gli spettri nmr
+# Usage: Rscript integrals.R --left=5.257 --right=5.225 --where=5.243 --plotfile somefile.pdf . metabolites.txt
 
-# `kind` corrisponde ad una sottocartella dello spettro.  Ho visto { 1, 3, 4, 98888 }
+# `kind` correspnods to the subdirectory of the spectrum directory.  I saw: { 1, 3, 4, 98888 }
 # Used by load_spectrum to determine from where to load the data
 kind=3
 
 library("caTools")
+library("optparse") # for python-style option parsing
 
 get_spectra_dirs <- function(data_root) {
   d <- dir(data_root, full.names=TRUE)
@@ -191,25 +192,61 @@ plot_metabolites <- function(metabolites, yy, xx) {
 spectra <- "/home/pireddu/Projects/phenomenal/cerm/Script/"
 metabolites <- "/home/pireddu/Projects/phenomenal/cerm/Script/metabolites.txt"
 
+do_arg_parsing <- function() {
+    option_list <- list(
+        make_option("--left", type="numeric", default=5.257, help="Left", metavar="N"),
+        make_option("--right", type="numeric", default=5.225, help="Right", metavar="N"),
+        make_option("--where", type="numeric", default=5.243, help="Where", metavar="N"),
+        make_option("--plotfile", type="character", default="plot.pdf", help="Plot file", metavar="FILE.pdf")
+        )
+    epilogue_help <- paste("\tSPECTRA_DIR\n\t\tDirectory containing the spectra to analyze\n\n",
+                           "\tMETABOLITES_TABLE\n\t\tMetabolites table in tab-separated format\n")
+
+    parser <- OptionParser(
+                  usage = "%prog [options] SPECTRA_DIR METABOLITES_TABLE",
+                  option_list=option_list,
+                  epilogue=epilogue_help)
+
+    args <- parse_args(parser, positional_arguments = 2)
+
+    spectra_dir <- args$args[1]
+    metab_file <- args$args[2]
+    if (!dir.exists(spectra_dir) || file.access(spectra_dir, 1 | 4) < 0) { # require r-x perms
+        stop(sprintf("The spectra directory %s either doesn't exist or we don't have access permission",
+                     spectra_dir))
+    }
+    else if (file.access(metab_file, 4) < 0) {
+        stop(sprintf("Can't read metabolites table file %s", metab_file))
+    }
+
+    args$spectra_dir <- spectra_dir
+    args$metabolites_file <- metab_file
+    return (args)
+}
+
 main <- function(path_to_spectra) {
-    left <- 5.257
-    right <- 5.225
-    where <- 5.243
+    args <- do_arg_parsing()
 
     # percorso del file metabolites.txt
-    metabolites_t <- read.table(metabolites)
+    message(sprintf("Loading metabolites table from %s", args$metabolites_file))
+    metabolites_t <- read.table(args$metabolites_file)
 
-    spectra_dirs <- get_spectra_dirs(path_to_spectra)
-    message("Loading spectra...")
+    message(sprintf("Looking for spectra in %s", args$spectra_dir))
+    spectra_dirs <- get_spectra_dirs(args$spectra_dir)
+
+    message(sprintf("Loading %d spectra...", length(spectra_dirs)))
     spectrum_objects <- lapply(spectra_dirs, load_spectrum)
     message(paste("Loaded", length(spectrum_objects), "spectrum objects"))
 
-    new_offsets <- align_all(spectrum_objects, left, right, where)
+    message("Aligning")
+    new_offsets <- align_all(spectrum_objects, args$options$left, args$options$right, args$options$where)
+    message("Integrating")
     integr_results <- integrate_all(spectrum_objects, new_offsets, metabolites_t)
+    message("Done.  Printing output")
 
     print_report(integr_results$inte, metabolites_t)
 
-    pdf("plot.pdf")
+    pdf(args$options$plotfile)
     plot_metabolites(metabolites_t, integr_results$y, integr_results$x)
     ignored_ret_device <- dev.off()
 }
