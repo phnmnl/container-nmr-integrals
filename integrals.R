@@ -1,3 +1,4 @@
+#!/usr/bin/env Rscript
 
 # Original author:  Leonardo Tenori (2016)
 # Refactored by Luca Pireddu (2018)
@@ -189,9 +190,6 @@ plot_metabolites <- function(metabolites, yy, xx) {
 }
 
 
-spectra <- "/home/pireddu/Projects/phenomenal/cerm/Script/"
-metabolites <- "/home/pireddu/Projects/phenomenal/cerm/Script/metabolites.txt"
-
 do_arg_parsing <- function() {
     option_list <- list(
         make_option("--left", type="numeric", default=5.257, help="Left", metavar="N"),
@@ -227,7 +225,6 @@ do_arg_parsing <- function() {
 main <- function(path_to_spectra) {
     args <- do_arg_parsing()
 
-    # percorso del file metabolites.txt
     message(sprintf("Loading metabolites table from %s", args$metabolites_file))
     metabolites_t <- read.table(args$metabolites_file)
 
