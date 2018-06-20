@@ -4,6 +4,7 @@
 # Refactored by Luca Pireddu (2018)
 
 # Usage: Rscript integrals.R --left=5.257 --right=5.225 --where=5.243 --plotfile somefile.pdf . metabolites.txt
+# Usage: Rscript integrals.R --left=5.257 --right=5.225 --where=5.243 --plotfile somefile.pdf metabolites.txt reference_dir test_dir
 
 # `kind` correspnods to the subdirectory of the spectrum directory.  I saw: { 1, 3, 4, 98888 }
 # Used by load_spectrum to determine from where to load the data
@@ -197,27 +198,33 @@ do_arg_parsing <- function() {
         make_option("--where", type="numeric", default=5.243, help="Where", metavar="N"),
         make_option("--plotfile", type="character", default="plot.pdf", help="Plot file", metavar="FILE.pdf")
         )
-    epilogue_help <- paste("\tSPECTRA_DIR\n\t\tDirectory containing the spectra to analyze\n\n",
-                           "\tMETABOLITES_TABLE\n\t\tMetabolites table in tab-separated format\n")
+    epilogue_help <- paste("\tMETABOLITES_TABLE\n\t\tMetabolites table in tab-separated format\n",
+													 "\tREFERENCE_SPECTRUM\n\t\tReference dataset (Bruker NMR)\n\n",
+													 "\tTEST_SPECTRUM\n\t\tTest dataset (Bruker NMR)\n\n"
+													)
 
     parser <- OptionParser(
                   usage = "%prog [options] SPECTRA_DIR METABOLITES_TABLE",
                   option_list=option_list,
                   epilogue=epilogue_help)
 
-    args <- parse_args(parser, positional_arguments = 2)
+    args <- parse_args(parser, positional_arguments = 3)
 
-    spectra_dir <- args$args[1]
-    metab_file <- args$args[2]
-    if (!dir.exists(spectra_dir) || file.access(spectra_dir, 1 | 4) < 0) { # require r-x perms
-        stop(sprintf("The spectra directory %s either doesn't exist or we don't have access permission",
-                     spectra_dir))
+    metab_file <- args$args[1]
+    reference_dir <- args$args[2]
+    test_dir <- args$args[3]
+    if (!dir.exists(reference_dir) || file.access(reference_dir, 1 | 4) < 0) { # require r-x perms
+        stop(sprintf("The reference dataset directory %s either doesn't exist or we don't have access permission", reference_dir))
+    }
+		else if (!dir.exists(test_dir) || file.access(test_dir, 1 | 4) < 0) { # require r-x perms
+        stop(sprintf("The reference dataset directory %s either doesn't exist or we don't have access permission", test_dir))
     }
     else if (file.access(metab_file, 4) < 0) {
         stop(sprintf("Can't read metabolites table file %s", metab_file))
     }
 
-    args$spectra_dir <- spectra_dir
+    args$reference_dir <- reference_dir
+    args$test_dir <- test_dir
     args$metabolites_file <- metab_file
     return (args)
 }
@@ -228,8 +235,8 @@ main <- function(path_to_spectra) {
     message(sprintf("Loading metabolites table from %s", args$metabolites_file))
     metabolites_t <- read.table(args$metabolites_file)
 
-    message(sprintf("Looking for spectra in %s", args$spectra_dir))
-    spectra_dirs <- get_spectra_dirs(args$spectra_dir)
+		# order is important.  Later functions assume the reference is the first in the list
+    spectra_dirs <- c(args$reference_dir, args$test_dir)
 
     message(sprintf("Loading %d spectra...", length(spectra_dirs)))
     spectrum_objects <- lapply(spectra_dirs, load_spectrum)
