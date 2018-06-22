@@ -29,7 +29,7 @@ OutputTable="${9}"
 
 
 reference_dir="${WorkDir}/input/reference"
-test_dir="\${WorkDir}/input/test"
+test_dir="${WorkDir}/input/test"
 
 mkdir --parents "${reference_dir}" "${test_dir}"
 
