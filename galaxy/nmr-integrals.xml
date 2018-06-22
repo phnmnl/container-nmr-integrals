@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
 
-<tool id="nmr_integrals" name="Compare Bruker NMR/metabolites " version="1.0">
+<tool id="nmr-integrals" name="Compare Bruker NMR/metabolites " version="1.0">
   <description>Compare specific metabolite levels in two NMR spectra</description>
   <!--
 echo "Unzipping input archives" >&2
