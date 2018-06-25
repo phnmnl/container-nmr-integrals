@@ -150,8 +150,8 @@ integrate_all <- function(spectrum_objects, aligned_offsets, metabolites_table) 
 
 print_report <- function(integration, metabolites_table) {
     for (h in 1:nrow(metabolites_table) ) {
-        ss = paste(metabolites_table[h,1], "ok")
-        pp = paste(metabolites_table[h,1], "bad")
+        ss = paste(metabolites_table[h,1], "\tok")
+        pp = paste(metabolites_table[h,1], "\tbad")
 
         reference = integration[1,h]
         test = integration[2,h]
