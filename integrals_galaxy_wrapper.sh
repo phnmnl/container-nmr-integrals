@@ -31,11 +31,36 @@ OutputTable="${9}"
 reference_dir="${WorkDir}/input/reference"
 test_dir="${WorkDir}/input/test"
 
-mkdir --parents "${reference_dir}" "${test_dir}"
 
+function unzip_strip_components_1() {
+  # unzip the dataset archive stripping the first path component if its the only one.
+  # We assume that the user zipped the entire dataset tree.
+  # If we find more than one path at the base of the archive tree then we move
+  # everything to the input directory.
+  local archive="${1}"
+  local dest="${2}"
+
+  local tmpdir=$(mktemp -d --tmpdir="${WorkDir}")
+  unzip -d "${tmpdir}" "${archive}"
+
+  mkdir --parents "${dest}"
+
+  shopt -s dotglob
+  local items=("${tmpdir}"/*)
+  if [[ ${#items[@]} == 1 ]]; then
+    mv "${tmpdir}"/*/* "${dest}"
+  else
+    mv "${tmpdir}"/* "${dest}"
+  fi
+  rmdir "${tmpdir}"/* "${tmpdir}"
+  return 0
+}
+
+#### main ####
 echo "Unzipping input archives" >&2
-unzip -q -d "${reference_dir}" "${ReferenceSpectrumZip}"
-unzip -q -d "${test_dir}" "${TestSpectrumZip}"
+
+unzip_strip_components_1 "${ReferenceSpectrumZip}" "${reference_dir}"
+unzip_strip_components_1 "${TestSpectrumZip}" "${test_dir}"
 
 echo "Analyzing" >&2
 
