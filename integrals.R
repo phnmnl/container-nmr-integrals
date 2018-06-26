@@ -150,8 +150,8 @@ integrate_all <- function(spectrum_objects, aligned_offsets, metabolites_table) 
 
 print_report <- function(integration, metabolites_table) {
     for (h in 1:nrow(metabolites_table) ) {
-        ss = paste(metabolites_table[h,1], "\tok")
-        pp = paste(metabolites_table[h,1], "\tbad")
+        ss = paste(metabolites_table[h,1], "ok", sep="\t")
+        pp = paste(metabolites_table[h,1], "bad", sep="\t")
 
         reference = integration[1,h]
         test = integration[2,h]
@@ -159,7 +159,7 @@ print_report <- function(integration, metabolites_table) {
         tt = test * 100 / reference
         ttt = abs(100 - tt)
         output <- ifelse(ttt < 20, ss, pp)
-        cat(output, "\tdiff\t", round(ttt,2), "\t%\n")
+        cat(output, "\tdiff\t", round(ttt,2), "\t%\n", sep="")
     }
 }
 
@@ -199,7 +199,8 @@ do_arg_parsing <- function() {
         )
     epilogue_help <- paste("\tMETABOLITES_TABLE\n\t\tMetabolites table in tab-separated format\n\n",
                            "\tREFERENCE_SPECTRUM\n\t\tReference dataset (Bruker NMR)\n\n",
-                           "\tTEST_SPECTRUM\n\t\tTest dataset (Bruker NMR)\n\n"
+                           "\tTEST_SPECTRUM\n\t\tTest dataset (Bruker NMR)\n\n",
+                           sep=""
                           )
 
     parser <- OptionParser(
