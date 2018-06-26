@@ -15,7 +15,7 @@ LABEL tags="Metabolomics"
 
 RUN \
      apk update \
-  && apk add unzip  \
+  && apk add ca-certificates unzip wget \
   && rm -rf /var/cache/apk/*
 
 RUN Rscript -e 'install.packages(c("caTools", "optparse"))'

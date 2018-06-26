@@ -27,9 +27,11 @@ wget -O "${Expected}" 'https://drive.google.com/uc?export=download&id=1g29hI7qTS
 
 echo "Running tool" >&2
 
-integrals_galaxy_wrapper.sh "${PWD}" 5.257 5.225 5.243 "${PlotFile}" "${MetabolitesFile}" "${RefZip}" "${TestZip}" > "${OutputTable}"
+integrals_galaxy_wrapper.sh "${PWD}" 5.257 5.225 5.243 "${PlotFile}" "${MetabolitesFile}" "${RefZip}" "${TestZip}" "${OutputTable}"
 
-if diff "${Expected}" "${OutputTable}" ; then
+# for ascii-based sorting.  Line order isn't important in our table comparison
+export LC_ALL=C
+if ! diff <(sort "${Expected}") <(sort "${OutputTable}") ; then
   echo "UNEXPECTED DIFFERENCES IN OUTPUT TABLE" >&2
   echo "Test failed" >&2
   exit 2
