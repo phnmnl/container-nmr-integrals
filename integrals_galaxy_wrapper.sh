@@ -11,7 +11,7 @@ if [[ $# != 9 ]]; then
 fi
 
 function error_trap() {
-  log "#### Error at line ${BASH_LINENO[0]} running command ${BASH_COMMAND} ####"
+  echo "#### Error at line ${BASH_LINENO[0]} running command ${BASH_COMMAND} ####" >&2
 }
 
 trap error_trap ERR
