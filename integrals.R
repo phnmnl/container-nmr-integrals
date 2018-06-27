@@ -63,6 +63,9 @@ load_spectrum <- function(spectrum_dir) {
 
 align_spectrum <- function(spectrum_object, left, right, where) {
     # align spectra to a reference signal
+    if (left <= right) { # it's weird, but left needs to be > right
+      stop(paste("left is greater than right! (", left, " > ", right, ")"))
+    }
 
     v <- which(left >= spectrum_object$x & right <= spectrum_object$x)
     s <- which.max(spectrum_object$y[v])
@@ -222,6 +225,11 @@ do_arg_parsing <- function() {
     else if (file.access(metab_file, 4) < 0) {
         stop(sprintf("Can't read metabolites table file %s", metab_file))
     }
+
+    if (args$options$left <= args$options$right) {
+        stop("--left must be greater than --right")
+    }
+
 
     args$reference_dir <- reference_dir
     args$test_dir <- test_dir
