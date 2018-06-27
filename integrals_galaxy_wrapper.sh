@@ -67,4 +67,6 @@ echo "Analyzing" >&2
 "${IntegralsScript}" --left=${Left} --right=${Right} --where=${Where} --plotfile "${OutputPlotfile}" "${SignalMetabolitesTable}" "${reference_dir}" "${test_dir}" > "${OutputTable}"
 
 echo "Finished" >&2
+
+rm -rf "${reference_dir}" "${test_dir}"
 exit 0
