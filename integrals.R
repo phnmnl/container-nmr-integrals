@@ -3,7 +3,6 @@
 # Original author:  Leonardo Tenori (2016)
 # Refactored by Luca Pireddu (2018)
 
-# Usage: Rscript integrals.R --left=5.257 --right=5.225 --where=5.243 --plotfile somefile.pdf . metabolites.txt
 # Usage: Rscript integrals.R --left=5.257 --right=5.225 --where=5.243 --plotfile somefile.pdf metabolites.txt reference_dir test_dir
 
 # `kind` correspnods to the subdirectory of the spectrum directory.  I saw: { 1, 3, 4, 98888 }
@@ -64,6 +63,9 @@ load_spectrum <- function(spectrum_dir) {
 
 align_spectrum <- function(spectrum_object, left, right, where) {
     # align spectra to a reference signal
+    if (left <= right) { # it's weird, but left needs to be > right
+      stop(paste("left is greater than right! (", left, " > ", right, ")"))
+    }
 
     v <- which(left >= spectrum_object$x & right <= spectrum_object$x)
     s <- which.max(spectrum_object$y[v])
@@ -151,8 +153,8 @@ integrate_all <- function(spectrum_objects, aligned_offsets, metabolites_table) 
 
 print_report <- function(integration, metabolites_table) {
     for (h in 1:nrow(metabolites_table) ) {
-        ss = paste(metabolites_table[h,1], "ok")
-        pp = paste(metabolites_table[h,1], "bad")
+        ss = paste(metabolites_table[h,1], "ok", sep="\t")
+        pp = paste(metabolites_table[h,1], "bad", sep="\t")
 
         reference = integration[1,h]
         test = integration[2,h]
@@ -160,7 +162,7 @@ print_report <- function(integration, metabolites_table) {
         tt = test * 100 / reference
         ttt = abs(100 - tt)
         output <- ifelse(ttt < 20, ss, pp)
-        cat(output, "\tdiff\t", round(ttt,2), "\t%\n")
+        cat(output, "\tdiff\t", round(ttt,2), "\t%\n", sep="")
     }
 }
 
@@ -190,52 +192,87 @@ plot_metabolites <- function(metabolites, yy, xx) {
     }
 }
 
+instantiate_default_metabolites_table <- function() {
+  data <-
+'metabolites\tleft\tright\twhere\tbaseline\talign
+totalarea\t1.3000\t0.9000\t1.2797\t0\t1
+totalarea1\t4.2000\t1.3000\t1.3246\t0\t1
+totalarea2\t9.0000\t5.0000\t5.2431\t0\t1
+glucose\t5.2500\t5.2200\t5.2367\t1\t1
+lactate\t4.1137\t4.0920\t4.1085\t1\t1
+citrate\t2.5600\t2.5400\t2.5500\t1\t1
+pyruvate\t2.3780\t2.3650\t2.3730\t1\t1
+ethanol\t1.2028\t1.1926\t1.1969\t0\t0
+ethanol1\t1.1913\t1.1798\t1.1885\t0\t0
+glycine\t3.5700\t3.5583\t3.5630\t1\t1
+acetate\t1.9231\t1.9165\t1.9189\t1\t1
+lypids\t1.3150\t1.2500\t1.2780\t1\t1
+glycerol\t3.6959\t3.6368\t3.6674\t0\t0'
+
+  df <- read.table(header=TRUE, text=data)
+  return (df)
+}
 
 do_arg_parsing <- function() {
     option_list <- list(
         make_option("--left", type="numeric", default=5.257, help="Left", metavar="N"),
         make_option("--right", type="numeric", default=5.225, help="Right", metavar="N"),
         make_option("--where", type="numeric", default=5.243, help="Where", metavar="N"),
-        make_option("--plotfile", type="character", default="plot.pdf", help="Plot file", metavar="FILE.pdf")
+        make_option("--plotfile", type="character", default="plot.pdf", help="Plot file", metavar="FILE.pdf"),
+        make_option("--metabolites", type="character", help="Metabolites table in tab-separated format", metavar="METABOLITES.tsv")
         )
-    epilogue_help <- paste("\tMETABOLITES_TABLE\n\t\tMetabolites table in tab-separated format\n",
-													 "\tREFERENCE_SPECTRUM\n\t\tReference dataset (Bruker NMR)\n\n",
-													 "\tTEST_SPECTRUM\n\t\tTest dataset (Bruker NMR)\n\n"
-													)
+    epilogue_help <- paste("\tREFERENCE_SPECTRUM\n\t\tReference dataset (Bruker NMR)\n\n",
+                           "\tTEST_SPECTRUM\n\t\tTest dataset (Bruker NMR)\n\n",
+                           sep=""
+                          )
 
     parser <- OptionParser(
-                  usage = "%prog [options] SPECTRA_DIR METABOLITES_TABLE",
+                  usage = "%prog [options] METABOLITES_TABLE REFERENCE_SPECTRUM TEST_SPECTRUM",
                   option_list=option_list,
                   epilogue=epilogue_help)
 
-    args <- parse_args(parser, positional_arguments = 3)
+    args <- parse_args(parser, positional_arguments = 2)
 
-    metab_file <- args$args[1]
-    reference_dir <- args$args[2]
-    test_dir <- args$args[3]
+    reference_dir <- args$args[1]
+    test_dir <- args$args[2]
     if (!dir.exists(reference_dir) || file.access(reference_dir, 1 | 4) < 0) { # require r-x perms
         stop(sprintf("The reference dataset directory %s either doesn't exist or we don't have access permission", reference_dir))
     }
-		else if (!dir.exists(test_dir) || file.access(test_dir, 1 | 4) < 0) { # require r-x perms
+    else if (!dir.exists(test_dir) || file.access(test_dir, 1 | 4) < 0) { # require r-x perms
         stop(sprintf("The reference dataset directory %s either doesn't exist or we don't have access permission", test_dir))
     }
-    else if (file.access(metab_file, 4) < 0) {
-        stop(sprintf("Can't read metabolites table file %s", metab_file))
+
+    if (length(args$options$metabolites) > 0) {
+      if (file.access(args$options$metabolites, 4) < 0) {
+          stop(sprintf("Can't read metabolites table file %s", metab_file))
+      }
     }
+    else {
+      message("Using default signal metabolites.")
+    }
+
+    if (args$options$left <= args$options$right) {
+        stop("--left must be greater than --right")
+    }
+
 
     args$reference_dir <- reference_dir
     args$test_dir <- test_dir
-    args$metabolites_file <- metab_file
     return (args)
 }
 
 main <- function(path_to_spectra) {
     args <- do_arg_parsing()
 
-    message(sprintf("Loading metabolites table from %s", args$metabolites_file))
-    metabolites_t <- read.table(args$metabolites_file)
+    if (length(args$options$metabolites) > 0) {
+      message(sprintf("Loading metabolites table from %s", args$options$metabolites))
+      metabolites_t <- read.table(args$options$metabolites)
+    }
+    else {
+      metabolites_t <- instantiate_default_metabolites_table()
+    }
 
-		# order is important.  Later functions assume the reference is the first in the list
+    # order is important.  Later functions assume the reference is the first in the list
     spectra_dirs <- c(args$reference_dir, args$test_dir)
 
     message(sprintf("Loading %d spectra...", length(spectra_dirs)))

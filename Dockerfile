@@ -13,17 +13,25 @@ LABEL documentation="https://github.com/phnmnl/container-nmr-integrals"
 LABEL license="https://github.com/phnmnl/container-nmr-integrals"
 LABEL tags="Metabolomics"
 
-WORKDIR /nmr-integrals
-COPY \
-  integrals.R \
-  runTest1.sh \
-/usr/local/bin/
-
-
-RUN chmod a+rx \
-  /usr/local/bin/integrals.R \
-  /usr/local/bin/runTest1.sh
+RUN \
+     apk update \
+  && apk add ca-certificates unzip wget \
+  && rm -rf /var/cache/apk/*
 
 RUN Rscript -e 'install.packages(c("caTools", "optparse"))'
 
-ENTRYPOINT ["integrals.R"]
+WORKDIR /nmr-integrals
+
+COPY \
+  integrals.R \
+  integrals_galaxy_wrapper.sh \
+  runTest1.sh \
+/usr/local/bin/
+
+RUN \
+  chmod a+rx \
+     /usr/local/bin/integrals.R \
+     /usr/local/bin/integrals_galaxy_wrapper.sh \
+     /usr/local/bin/runTest1.sh
+
+ENTRYPOINT ["integrals_galaxy_wrapper.sh"]
