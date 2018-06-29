@@ -5,9 +5,9 @@ set -o nounset
 
 IntegralsScript="integrals.R"
 
-if [[ $# != 9 ]]; then
+if [[ $# != 8 && $# != 9 ]]; then
   echo "Usage error!  Got $# arguments" >&2
-  exit $?
+  exit 1
 fi
 
 function error_trap() {
@@ -22,10 +22,10 @@ Left="${2}"
 Right="${3}"
 Where="${4}"
 OutputPlotfile="${5}"
-SignalMetabolitesTable="${6}"
-ReferenceSpectrumZip="${7}"
-TestSpectrumZip="${8}"
-OutputTable="${9}"
+ReferenceSpectrumZip="${6}"
+TestSpectrumZip="${7}"
+OutputTable="${8}"
+SignalMetabolitesTable="${9:-}"
 
 
 reference_dir="${WorkDir}/input/reference"
@@ -64,7 +64,12 @@ unzip_strip_components_1 "${TestSpectrumZip}" "${test_dir}"
 
 echo "Analyzing" >&2
 
-"${IntegralsScript}" --left=${Left} --right=${Right} --where=${Where} --plotfile "${OutputPlotfile}" "${SignalMetabolitesTable}" "${reference_dir}" "${test_dir}" > "${OutputTable}"
+if [[ -n "${SignalMetabolitesTable:-}" ]]; then
+  "${IntegralsScript}" --left=${Left} --right=${Right} --where=${Where} --metabolites "${SignalMetabolitesTable}" --plotfile "${OutputPlotfile}" "${reference_dir}" "${test_dir}" > "${OutputTable}"
+else
+  "${IntegralsScript}" --left=${Left} --right=${Right} --where=${Where} --plotfile "${OutputPlotfile}" "${reference_dir}" "${test_dir}" > "${OutputTable}"
+fi
+
 
 echo "Finished" >&2
 
