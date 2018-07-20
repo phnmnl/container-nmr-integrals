@@ -6,34 +6,18 @@ Version: 0.1.0
 
 ## Short Description
 
-Compares specific metabolite levels in two NMR spectra of blood serum/plasma
-samples.
+Compares specific metabolite levels in two NMR spectra of blood serum/plasma samples.
 
 
 ## Description
 
-This tool implements a comparison between the NMR spectra of a reference sample
-and a test sample, based on selected metabolite signals.
+This tool implements a comparison between the NMR spectra of a reference sample and a test sample, based on selected metabolite signals.
 
-Two aliquots of the same sample have the same metabolomic profiles, and thus
-have exactly the same NMR spectra. Based on this premise, the NMR spectrum can
-be used to check the quality of samples. This tool compares the NMR spectrum a
-blood serum/plasma sample with the NMR spectrum of a different aliquot of the
-same sample acquired at a different time (e.g., spectrum acquired at the moment
-of the sample collection vs. spectrum acquired after long-term storage).  The
-metabolites tested are those one that were experimentally identified as
-"sensible" indicators of sample quality. The respective NMR signals are
-selected, and their relative concentrations inside each of the sample compared
-are measured. Spectral total area is also calculated to have information about
-the presence of contaminations.
+Two aliquots of the same sample have the same metabolomic profiles, and thus have exactly the same NMR spectra. Based on this premise, the NMR spectrum can be used to check the quality of samples. 
 
-The operation is part of a QC procedure for biobanks, where samples are
-periodically analyzed to detected and measure long-term quality decay.
+This tool compares the NMR spectrum of a blood serum/plasma sample with the NMR spectrum of a different aliquot of the same sample acquired at a different time (e.g., spectrum acquired at the moment of the sample collection vs. spectrum acquired after long-term storage). The metabolites tested are those ones that were experimentally identified as "sensible" indicators of sample quality. The respective NMR signals are selected, and their relative concentrations inside each of the samples compared are measured. Spectral total area is also calculated to have information about the presence of contaminations. The operation is part of a QC procedure for biobanks, where samples are periodically analyzed to detected and measure long-term quality decay.
 
-The tool generates a table and a set of plots indicating the signal differences
-and whether they are significant.
-
-
+The tool generates a table and a set of plots indicating the signal differences and whether they are significant.
 
 ## Key features
 
@@ -114,23 +98,17 @@ Options:
 ### Input
 
 
-Left
-  Left margin of the integration range (ppm value)
+Left - Left margin of the integration range (ppm value)
 
-Right
-  Right margin of the integration range (ppm value) (must be greater than left)
+Right - Right margin of the integration range (ppm value) (must be greater than left)
 
-Where
-  ppm value (inside the integration rage) where we want to align the signals of the two spectra.
+Where - ppm value (inside the integration rage) where we want to align the signals of the two spectra.
 
-Reference spectrum
-  Bruker monodimensional 1H cpmg NMR spectrum
+Reference spectrum - Bruker monodimensional 1H cpmg NMR spectrum
 
-Test spectrum
-  Bruker monodimensional 1H cpmg NMR spectrum
+Test spectrum - Bruker monodimensional 1H cpmg NMR spectrum
 
-Signal Metabolites
-  Optional table of signal metabolites, to override default behaviour.
+Signal Metabolites - Optional table of signal metabolites, to override default behaviour.
 
 
 #### Metabolites table
@@ -147,23 +125,17 @@ Here is the table format.
 
 Columns:
 
-1st column
-  Metabolite name
+1st column - Metabolite name
 
-2nd column
-  Right margin of the integration range (ppm value)
+2nd column - Right margin of the integration range (ppm value)
 
-3rd column
-  Left margin of the integration range (ppm value)
+3rd column - Left margin of the integration range (ppm value)
 
-4th column
-  ppm value (inside the integration rage) where we want to align the signals of the two spectra.
+4th column - ppm value (inside the integration rage) where we want to align the signals of the two spectra.
 
-5th column
-  base line correction (0: no /1: yes)
+5th column - base line correction (0: no /1: yes)
 
-6th column
-  signal alignment at where (0: no /1: yes)
+6th column - signal alignment at where (0: no /1: yes)
 
 
 The table below is the *default table*, which has been verified to return sensible
@@ -188,20 +160,17 @@ values:
 
 #### Output
 
-1. Plots of ppm vs relative intensity, for each metabolite (PDF format).
-2. Table (tab-separated columns) with the difference in the relative
+- Plots of ppm vs relative intensity, for each metabolite (PDF format).
+- Table (tab-separated columns) with the difference in the relative
 concentration of the selected metabolites. Threshold: +/-20%.
 
 Table columns:
 
-1st column
-  Metabolite name
+1st column - Metabolite name
 
-2nd column
-  ok/bad
+2nd column - ok/bad
 
-4th column
-  relative concetration difference (percentage)
+4th column - relative concetration difference (percentage)
 
 
 The 3rd column is always "diff" and the 5th one is always a "%" sign.
