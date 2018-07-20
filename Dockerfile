@@ -3,7 +3,7 @@ FROM artemklevtsov/r-alpine:3.3.1
 MAINTAINER PhenoMeNal-H2020 Project ( phenomenal-h2020-users@googlegroups.com )
 
 LABEL Description="R-based script to compute NMR spectrum deviation for sample QC"
-LABEL software.version="0.1.0"
+LABEL software.version="0.1.1"
 LABEL version="0.1"
 LABEL software="nmr-integrals"
 
