@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
 
-<tool id="nmr-integrals" name="Compare Bruker NMR/metabolites " version="1.0">
+<tool id="nmr-integrals" name="Compare Bruker NMR/metabolites " version="1.0.1">
   <description>Compare specific metabolite levels in two NMR spectra</description>
   <command detect_errors="exit_code"><![CDATA[
     #if $signal_metabolites:
