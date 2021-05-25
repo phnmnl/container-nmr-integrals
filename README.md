@@ -174,3 +174,7 @@ Table columns:
 
 
 The 3rd column is always "diff" and the 5th one is always a "%" sign.
+
+## Acknowledgements
+
+This work was done in collaboration with SPIDIA4P.
